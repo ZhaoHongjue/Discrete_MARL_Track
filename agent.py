@@ -1,7 +1,8 @@
 import numpy as np
+import math
 
 class Agent:
-    def __init__(self, map, initpos = [0, 0], goal = [0, 0], ob_size = 5, isenemy = False):
+    def __init__(self, initpos = [0, 0], goal = [0, 0], isenemy = False):
         '''
         初始化机器人
 
@@ -10,18 +11,14 @@ class Agent:
         isenemy：是否为我方机器人
         '''
         # 设置机器人的初始位置以及当前位置
-        self.initpos = np.asarray(initpos, dtype = float)
-        self.pos = np.asarray(initpos, dtype = float)
+        self.initpos = np.asarray(initpos, dtype = int)  # 机器人初始位置，用于之后重置机器人
+        self.pos = np.asarray(initpos, dtype = int)
+        self.last_pos = np.asarray(initpos, dtype = int) # 机器人上次的位置，用于计算奖励
 
         # 设置机器人的目标点信息
-        self.global_goal = np.zeros(2)
-        self.local_goal = np.zeros(2)
+        self.global_goal = np.zeros(2, dtype = int)
+        self.local_goal = np.zeros(2, dtype = int)
         self.set_goal(goal)
-
-        # 机器人观测
-        self.map = map
-        self.map_size = 5 # 测试用地图大小
-        self.observe = np.zeros((ob_size, ob_size))
         
         # 任务参数
         self.done_arrive = False
@@ -34,7 +31,7 @@ class Agent:
 
         goal:需要去的位置的全局目标点
         '''
-        goal = np.asarray(goal, dtype = float)
+        goal = np.asarray(goal, dtype = int)
         if goal.shape != (2,):
             print('set_goal传参错误!')
         else:
@@ -44,6 +41,8 @@ class Agent:
     def set_action(self, action):
         '''
         选择机器人动作，用0~7表示可以去的方向，依次为：左上、上、右上、左、右、左下、下、右下
+
+        action：动作编号
         '''
         action = int(action)
         if action not in list(range(8)):
@@ -51,34 +50,17 @@ class Agent:
         else:
             choices = np.array([[-1, -1], [0, -1], [1, -1], [-1, 0],
                                 [1, 0], [-1, 1], [0, 1], [1, 1]])
+            self.last_pos = self.pos.copy()
             self.pos += choices[action]
             self.local_goal = self.global_goal - self.pos
-    
-    def get_state(self, map):
-        '''
-        获取机器人的观测，检测是否发生碰撞或者到达目标点
-        '''
-        # 获取机器人的观测信息
-        pass
-        # 检测机器人是否到达目标点
-        if (self.pos == self.global_goal).all() == True:
-            self.done_arrive = True
-        # 检测机器人是否发生碰撞
-        if self.observe[0, 0] == 4 or self.observe[0, 0] == 2 or \
-                len(self.pos[self.pos < 0]) != 0 or len(self.pos[self.pos >= self.map_size]) != 0:
-            self.done_collision = True
-        return self.observe, self.done_arrive, self.done_collision
 
     def reset(self):
         '''
         重置机器人状态
         '''
-        self.pos = self.initpos
+        self.pos = self.initpos.copy()
+        self.last_pos = self.pos.copy()
         self.local_goal = self.global_goal - self.pos
-        self.observe = np.zeros_like(self.observe)
-        self.done_arrive = False
-        self.done_collision = False
-        pass
 
     def compute_reward(self):
         '''
@@ -89,7 +71,13 @@ class Agent:
         elif self.done_collision:   # 发生碰撞
             reward = -10
         else:                       # 未结束
-            reward = 0
+            # 与目标点的距离缩短
+            distance1 = np.sqrt((self.pos[0] - self.global_goal[0])**2 + (self.pos[1] - self.global_goal[1])**2)
+            distance2 = np.sqrt((self.last_pos[0] - self.global_goal[0])**2 + (self.last_pos[1] - self.global_goal[1])**2) 
+            print(f'distance1: {distance1}, distance2: {distance2}')
+            reward1 = 6 * int(distance1 < distance2)
+            reward2 = -5 # 每走一步都消耗能量
+            reward = reward1 + reward2
         return reward
 
 if __name__ == '__main__':
@@ -102,11 +90,8 @@ if __name__ == '__main__':
         agent.set_goal(goal)
         print('pos: {}; global_goal: {}; local_goal: {}'.\
             format(agent.pos, agent.global_goal, agent.local_goal))
-        if agent.get_state()[1]:
+        if agent.local_goal.all() == 0:
             print('到达目的地！')
-            break
-        if agent.get_state()[2]:
-            print('碰撞！')
-            break
+            agent.reset()
 
          
