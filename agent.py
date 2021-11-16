@@ -1,7 +1,7 @@
 import numpy as np
 
 class Agent:
-    def __init__(self, initpos = [0, 0], goal = [0, 0], ob_size = 5, map_size = 5, isenemy = False):
+    def __init__(self, map, initpos = [0, 0], goal = [0, 0], ob_size = 5, isenemy = False):
         '''
         初始化机器人
 
@@ -19,12 +19,13 @@ class Agent:
         self.set_goal(goal)
 
         # 机器人观测
+        self.map = map
+        self.map_size = 5 # 测试用地图大小
         self.observe = np.zeros((ob_size, ob_size))
         
         # 任务参数
         self.done_arrive = False
         self.done_collision = False
-        self.map_size = map_size
         self.isenemy = isenemy
     
     def set_goal(self, goal):
@@ -55,9 +56,10 @@ class Agent:
     
     def get_state(self, map):
         '''
-        获取机器人的状态，包括观测、目标点位置等，检测是否发生碰撞或者到达目标点
+        获取机器人的观测，检测是否发生碰撞或者到达目标点
         '''
         # 获取机器人的观测信息
+        pass
         # 检测机器人是否到达目标点
         if (self.pos == self.global_goal).all() == True:
             self.done_arrive = True
@@ -72,13 +74,23 @@ class Agent:
         重置机器人状态
         '''
         self.pos = self.initpos
+        self.local_goal = self.global_goal - self.pos
+        self.observe = np.zeros_like(self.observe)
+        self.done_arrive = False
+        self.done_collision = False
         pass
 
     def compute_reward(self):
         '''
         计算当前机器人的奖励
         '''
-        pass
+        if self.done_arrive:        # 成功到达
+            reward = 10
+        elif self.done_collision:   # 发生碰撞
+            reward = -10
+        else:                       # 未结束
+            reward = 0
+        return reward
 
 if __name__ == '__main__':
     agent = Agent()
