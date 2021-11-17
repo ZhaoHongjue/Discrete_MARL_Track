@@ -4,13 +4,14 @@ import time
 from UI import Maze
 
 class NavigationEnv:
-    def __init__(self, size = 20, agent_num = 1, block_num = 20):
+    def __init__(self, size = 20, ob_size = 5, agent_num = 1, block_num = 20):
         '''
-        生成地图
+        生成地图以及初始参数设置
         map中的0：可行通道；1：障碍物；2：我方机器人；3：目标点；4：敌方机器人；
         agent_num：机器人数量
         block_num：障碍块数量
         '''
+        # 地图生成
         self.size = size
         self.map = np.zeros((size, size))
         self.agents = []
@@ -21,6 +22,10 @@ class NavigationEnv:
         self.AddBlocks(self.block_num)
         self.AddAgents(self.agent_num)
         self.Agents_Place_Refresh()
+
+        # 环境参数
+        self.action_dim = agent_num
+        self.observation_dim = 5 * 5 + 2 # 观测周围5 * 5的信息，并把局部坐标点输入
 
     def AddBlocks(self, num):
         '''
@@ -155,8 +160,7 @@ class NavigationEnv:
         if not done:
             self.maze.after(1000, self.close)
         self.maze.mainloop()
-        
-    
+           
     def close(self):
         '''
         关闭图形化界面
