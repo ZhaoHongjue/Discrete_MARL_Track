@@ -1,8 +1,10 @@
 import numpy as np
 from agent import Agent
+import time
+from UI import Maze
 
 class NavigationEnv:
-    def __init__(self, size = 20, agent_num = 1, block_num = 8):
+    def __init__(self, size = 20, agent_num = 1, block_num = 20):
         '''
         生成地图
         map中的0：可行通道；1：障碍物；2：我方机器人；3：目标点；4：敌方机器人；
@@ -62,11 +64,14 @@ class NavigationEnv:
         self.map[self.map == 3] = 0
         for i in range(len(self.agents)):
             # 如果机器人当前位置没有障碍物
-            if self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 0:
+            if self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 0 or \
+                self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 3:
                 self.map[self.agents[i].pos[0], self.agents[i].pos[1]] = 2
             # 否则则认为发生碰撞
             else:
                 self.agents[i].done_collision = True
+                self.agents[i].pos = self.agents[i].last_pos.copy()
+                self.map[self.agents[i].pos[0], self.agents[i].pos[1]] = 2
             self.map[self.agents[i].global_goal[0], self.agents[i].global_goal[1]] = 3
 
     def Agents_Observe(self):
@@ -120,10 +125,11 @@ class NavigationEnv:
             self.agents[i].set_action(actions[i])
 
             # 如果机器人的位置没有超越地图边界，则更新机器人位置
-            if 0 <= self.agents[i].pos[0] < 20 and 0 <= self.agents[i].pos[1] < 20:
-                self.Agents_Place_Refresh()
-            else:
+            if not (0 <= self.agents[i].pos[0] < 20 and 0 <= self.agents[i].pos[1] < 20):
                 self.agents[i].done_collision = True
+                self.agents[i].pos = self.agents[i].last_pos.copy()    
+
+            self.Agents_Place_Refresh()
 
             # 判断机器人是否到目标位置
             # print(f'local_goal: {self.agents[i].local_goal}')
@@ -140,14 +146,28 @@ class NavigationEnv:
         
         return observations, rewards, done_arrives, done_collisions
 
-    def render(self):
+    def render(self, done):
+        '''
+        绘制图形化界面
+        '''
         print(self.map)
+        self.maze = Maze(self.map)
+        if not done:
+            self.maze.after(1000, self.close)
+        self.maze.mainloop()
+        
+    
+    def close(self):
+        '''
+        关闭图形化界面
+        '''
+        self.maze.destroy()
 
 if __name__ == '__main__':
     env = NavigationEnv(agent_num=1)
     
+    env.render(done=False)
     while True:
-        env.render()
         observations, rewards, done_arrives, done_collisions = env.step([7])
         print(f'observations: {observations}')
         print(f'rewards: {rewards}')
@@ -156,3 +176,5 @@ if __name__ == '__main__':
         print('-------------------------------------------------')
         if done_arrives[0] or done_collisions[0]:
             break
+        env.render(done = done_arrives[0] or done_collisions[0])
+    env.render(done = True)
