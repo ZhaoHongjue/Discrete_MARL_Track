@@ -3,11 +3,12 @@ from agent import Agent
 from UI import Maze
 
 class NavigationEnv:
-    def __init__(self, size = 20, agent_num = 1, block_num = 20):
+    def __init__(self, size = 20, agent_num = 1, block_num = 10):
         '''
         生成地图以及初始参数设置
-        map中的0：可行通道；1：障碍物；2：我方机器人；3：目标点；4：敌方机器人；
-        agent_num：机器人数量
+
+        map中的0：可行通道；1：障碍物；2：我方机器人；3：目标点；4：敌方机器人；\\
+        agent_num：机器人数量\\
         block_num：障碍块数量
         '''
         # 地图生成
@@ -24,7 +25,7 @@ class NavigationEnv:
 
         # 环境参数
         self.action_dim = 8 # 每个agent可以向周围八个方向运动
-        self.observation_dim = 5 * 5 + 2 # 观测周围5 * 5的信息，并把局部坐标点输入
+        self.observation_dim = 5 * 5 + 2 - 1 # 观测周围5 * 5的信息，并把局部坐标点输入
 
     def AddBlocks(self, num):
         '''
@@ -53,7 +54,7 @@ class NavigationEnv:
 
             # 生成机器人目标点
             while True:
-                goal = np.random.randint(self.size, size = (2,))
+                goal = np.random.randint(self.size, size = (2,)) 
                 if self.map[goal[0], goal[1]] == 0:
                     break
             agent = Agent(initpos=initpose, goal=goal)
@@ -90,9 +91,10 @@ class NavigationEnv:
             observe = np.zeros((5, 5))
             pos = agent.pos + 2
             observe = map_fill[pos[0]-2:pos[0]+3, pos[1]-2:pos[1]+3].flatten().tolist()
-            observe.append(agent.local_goal[0])
-            observe.append(agent.local_goal[1])
-            observe = np.asarray(observe, dtype = int)
+            observe.pop(12) # 删除自身位置
+            observe.append(agent.local_goal[0] / 20)
+            observe.append(agent.local_goal[1] / 20)
+            observe = np.asarray(observe, dtype = float)
             observations.append(observe)
         
         return observations
@@ -123,10 +125,12 @@ class NavigationEnv:
         rewards = []
         done_arrives = []
         done_collisions = []
+        done_overtimes = []
 
         for i in range(len(self.agents)):
             # 执行对应动作
             self.agents[i].set_action(actions[i])
+            self.agents[i].steps += 1
 
             # 如果机器人的位置没有超越地图边界，则更新机器人位置
             if not (0 <= self.agents[i].pos[0] < 20 and 0 <= self.agents[i].pos[1] < 20):
@@ -141,23 +145,31 @@ class NavigationEnv:
                 self.agents[i].local_goal[1] == 0:
                 self.agents[i].done_arrive = True
 
+            # 判断是否超时
+            if self.agents[i].steps > 150:
+                self.agents[i].done_overtime = True
+
             # 计算回报
             reward = self.agents[i].compute_reward()
 
             done_arrives.append(self.agents[i].done_arrive)
             done_collisions.append(self.agents[i].done_collision)
+            done_overtimes.append(self.agents[i].done_overtime)
             rewards.append(reward)
-        
-        return observations, rewards, done_arrives, done_collisions
+        dones = np.asarray(done_arrives, dtype = bool) + np.asarray(done_collisions, dtype = bool) \
+            + np.asarray(done_overtimes, dtype = bool)
+        return observations, rewards, dones
 
     def render(self, done):
         '''
         绘制图形化界面
+
+        done：True时会持续运行，False时会每个0.5秒重画一次
         '''
-        print(self.map)
+        # print(self.map)
         self.maze = Maze(self.map)
         if not done:
-            self.maze.after(1000, self.close)
+            self.maze.after(500, self.close)
         self.maze.mainloop()
            
     def close(self):
@@ -171,12 +183,11 @@ if __name__ == '__main__':
     
     env.render(done=False)
     while True:
-        observations, rewards, done_arrives, done_collisions = env.step([7])
+        observations, rewards, dones = env.step([7])
         print(f'observations: {observations}')
         print(f'rewards: {rewards}')
-        print(f'done_arrives: {done_arrives}')
-        print(f'done_collisions: {done_collisions}')
-        env.render(done = done_arrives[0] or done_collisions[0])
+        done = True in dones
+        env.render(done)
         print('-------------------------------------------------')
-        if done_arrives[0] or done_collisions[0]:
+        if done:
             env.reset()

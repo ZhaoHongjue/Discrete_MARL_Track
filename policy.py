@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,8 +15,23 @@ tf.random.set_seed(0)
 
 from utils import *
 
-# DQN算法
+class RandomPolicy:
+    '''
+    随机策略，向随机方向走动
+
+    env：进行测试的环境
+    '''
+    def __init__(self, env) -> None:
+        self.action_dim = env.action_dim
+
+    def decide(self, observation):
+        action = np.random.randint(self.action_dim)
+        return action
+
 class DQN:
+    '''
+    DQN算法
+    '''
     def __init__(self, env, net_kwargs={}, gamma=0.09, epsilon=0.001,
                  replayer_capacity=10000, batch_size=64):
         '''
@@ -71,7 +89,11 @@ class DQN:
 
     def learn(self, observation, action, reward, next_observation, done):
         self.replayer.store(observation, action, reward, next_observation,
-                done) # 存储经验
+                done) 
+        '''
+        训练时进行学习
+        '''
+        # 存储经验
         observations, actions, rewards, next_observations, dones = \
                 self.replayer.sample(self.batch_size) # 经验回放
         
@@ -101,21 +123,25 @@ class DQN:
         self.target_net.load_weights('./models/target_net')
         self.replayer.load()
 
-def play_qlearning(env, agent, train=False, render=False):
+def play_qlearning(env, policy, train=False, render=False):
     episode_reward = 0
-    observation = env.reset()
+    observations = env.reset()
     while True:
         if render:
-            env.render()
-        action = agent.decide(observation)
-        next_observation, reward, done, _ = env.step(action)
-        episode_reward += reward
+            env.render(False)
+        actions = []
+        for i in range(env.agent_num):
+            action = policy.decide(observations[i])
+            actions.append(action)
+        next_observations, rewards, dones = env.step(actions)
+        episode_reward += np.sum(rewards)
         if train:
-            agent.learn(observation, action, reward, next_observation,
-                    done)
-        if done:
+            for i in range(env.agent_num):
+                policy.learn(observations[i], actions[i], rewards[i], next_observations[i],
+                    dones[i])
+        if True in dones:
             break
-        observation = next_observation
+        observations = next_observations
     return episode_reward
 
 if __name__ == '__main__':
