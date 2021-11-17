@@ -1,10 +1,9 @@
 import numpy as np
 from agent import Agent
-import time
 from UI import Maze
 
 class NavigationEnv:
-    def __init__(self, size = 20, ob_size = 5, agent_num = 1, block_num = 20):
+    def __init__(self, size = 20, agent_num = 1, block_num = 20):
         '''
         生成地图以及初始参数设置
         map中的0：可行通道；1：障碍物；2：我方机器人；3：目标点；4：敌方机器人；
@@ -24,7 +23,7 @@ class NavigationEnv:
         self.Agents_Place_Refresh()
 
         # 环境参数
-        self.action_dim = agent_num
+        self.action_dim = 8 # 每个agent可以向周围八个方向运动
         self.observation_dim = 5 * 5 + 2 # 观测周围5 * 5的信息，并把局部坐标点输入
 
     def AddBlocks(self, num):
