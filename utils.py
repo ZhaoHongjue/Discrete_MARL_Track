@@ -20,17 +20,34 @@ class ReplayerBuffer:
         self.capacity = capacity
 
     def store(self, *args):
+        '''
+        存储经验
+        '''
         self.memory.loc[self.i] = args
         self.i = (self.i + 1) % self.capacity
         self.count = min(self.count + 1, self.capacity)
     
     def sample(self, size):
+        '''
+        从经验池采样
+        '''
         indices = np.random.choice(self.count, size=size)
         return (np.stack(self.memory.loc[indices, field]) for field in
                 self.memory.columns)
+    def save(self):
+        '''
+        保存学习得到的经验
+        '''
+        self.memory.to_csv('./models/replayer.csv')
+
+    def load(self):
+        self.memory = pd.read_csv('./models/replayer.csv')
+        self.count = self.memory.shape[0]
     
-# 奖励曲线绘制函数
 def plot(episode_rewards):
+    '''
+    奖励曲线绘制函数
+    '''
     figure, ax = plt.subplots()
     ax.plot(episode_rewards)
     ax.set_xlabel('episode')
@@ -117,6 +134,7 @@ class DQN:
         '''
         self.evaluate_net.save_weights('./models/evaluate_net')
         self.target_net.save_weights('./models/target_net')
+        self.replayer.save()
 
     def load(self):
         '''
@@ -124,6 +142,7 @@ class DQN:
         '''
         self.evaluate_net.load_weights('./models/evaluate_net')
         self.target_net.load_weights('./models/target_net')
+        self.replayer.load()
 
 def play_qlearning(env, agent, train=False, render=False):
     episode_reward = 0
@@ -161,14 +180,14 @@ if __name__ == '__main__':
     # 测试
     agent.save()
     agent.epsilon = 0. # 取消探索
-    episode_rewards = [play_qlearning(env, agent) for _ in range(5)]
+    episode_rewards = [play_qlearning(env, agent) for _ in range(1)]
     print('平均回合奖励1 = {} / {} = {}'.format(sum(episode_rewards),
             len(episode_rewards), np.mean(episode_rewards)))
 
     test = DQN(env, net_kwargs=net_kwargs)
     test.epsilon = 0.
     test.load()
-    episode_rewards = [play_qlearning(env, test) for _ in range(5)]
+    episode_rewards = [play_qlearning(env, test) for _ in range(1)]
     print('平均回合奖励2 = {} / {} = {}'.format(sum(episode_rewards),
             len(episode_rewards), np.mean(episode_rewards)))
     print(test.target_net.get_weights()[1] == agent.target_net.get_weights()[1])
