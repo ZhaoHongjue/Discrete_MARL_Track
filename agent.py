@@ -1,5 +1,4 @@
 import numpy as np
-import math
 
 class Agent:
     def __init__(self, initpos = [0, 0], goal = [0, 0], isenemy = False):
@@ -75,7 +74,7 @@ class Agent:
             distance1 = np.sqrt((self.pos[0] - self.global_goal[0])**2 + (self.pos[1] - self.global_goal[1])**2)
             distance2 = np.sqrt((self.last_pos[0] - self.global_goal[0])**2 + (self.last_pos[1] - self.global_goal[1])**2) 
             print(f'distance1: {distance1}, distance2: {distance2}')
-            reward1 = 6 * int(distance1 < distance2)
+            reward1 = 4 * int(distance1 < distance2)
             reward2 = -5 # 每走一步都消耗能量
             reward = reward1 + reward2
         return reward
