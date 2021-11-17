@@ -61,14 +61,17 @@ class Agent:
         self.last_pos = self.pos.copy()
         self.local_goal = self.global_goal - self.pos
 
+        self.done_arrive = False
+        self.done_collision = False
+
     def compute_reward(self):
         '''
         计算当前机器人的奖励
         '''
         if self.done_arrive:        # 成功到达
-            reward = 10
+            reward = 100
         elif self.done_collision:   # 发生碰撞
-            reward = -10
+            reward = -100
         else:                       # 未结束
             # 与目标点的距离缩短
             distance1 = np.sqrt((self.pos[0] - self.global_goal[0])**2 + (self.pos[1] - self.global_goal[1])**2)

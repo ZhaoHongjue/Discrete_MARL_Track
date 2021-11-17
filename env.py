@@ -177,8 +177,7 @@ if __name__ == '__main__':
         print(f'rewards: {rewards}')
         print(f'done_arrives: {done_arrives}')
         print(f'done_collisions: {done_collisions}')
+        env.render(done = done_arrives[0] or done_collisions[0])
         print('-------------------------------------------------')
         if done_arrives[0] or done_collisions[0]:
-            break
-        env.render(done = done_arrives[0] or done_collisions[0])
-    env.render(done = True)
+            env.reset()
