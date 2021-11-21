@@ -1,6 +1,6 @@
 import numpy as np
 from env import NavigationEnv
-from policy import DQN, RandomPolicy, play_qlearning
+from policy import DQN, DoubleDQN, RandomPolicy, play_qlearning
 from utils import plot
 
 
@@ -29,11 +29,11 @@ def evaluate_policy(env, policy, render = False, episodes = 5):
     return np.mean(episode_rewards)
     
 
-env = NavigationEnv()
-net_kwargs = {'hidden_sizes' : [128, 128], 'lr' : 0.01}
-policy = DQN(env, net_kwargs)
+env = NavigationEnv(size = 10, block_num = 3, agent_num=1, block_size=2)
+net_kwargs = {'hidden_sizes' : [64, 64], 'lr' : 0.005}
+policy = DoubleDQN(env, net_kwargs)
 
-episodes = 500
+episodes = 1500
 episode_rewards = []
 for episode in range(episodes):
     episode_reward = play_qlearning(env, policy, train = True)
@@ -43,10 +43,10 @@ for episode in range(episodes):
 
 policy.save()
 
-policy.epsilon = 0.
-episode_rewards = [play_qlearning(env, policy) for _ in range(10)]
-print('平均回合奖励 = {} / {} = {}'.format(sum(episode_rewards),
-        len(episode_rewards), np.mean(episode_rewards)))
+# policy.epsilon = 0.
+# episode_rewards = [play_qlearning(env, policy) for _ in range(10)]
+# print('平均回合奖励 = {} / {} = {}'.format(sum(episode_rewards),
+#         len(episode_rewards), np.mean(episode_rewards)))
 
 
 # print('######################################')

@@ -1,9 +1,10 @@
 import numpy as np
 from agent import Agent
 from UI import Maze
+np.random.seed(0)
 
 class NavigationEnv:
-    def __init__(self, size = 20, agent_num = 1, block_num = 10):
+    def __init__(self, size = 20, agent_num = 1, block_num = 10, block_size = 3):
         '''
         生成地图以及初始参数设置
 
@@ -18,6 +19,7 @@ class NavigationEnv:
 
         self.agent_num = agent_num
         self.block_num = block_num
+        self.block_size = block_size
 
         self.AddBlocks(self.block_num)
         self.AddAgents(self.agent_num)
@@ -35,9 +37,9 @@ class NavigationEnv:
         '''
         for _ in range(num):
             p = [0.2, 0.8]
-            block = np.random.choice([0,1], size = 9, replace = True, p = p).reshape(3,3)
+            block = np.random.choice([0,1], size = self.block_size**2, replace = True, p = p).reshape(self.block_size, -1)
             pos = np.random.randint(2, self.size - 2, size = (2,))
-            self.map[pos[0]:pos[0]+3, pos[1]:pos[1]+3] = block
+            self.map[pos[0]:pos[0]+self.block_size, pos[1]:pos[1]+self.block_size] = block
 
     def AddAgents(self, num):
         '''
@@ -92,8 +94,8 @@ class NavigationEnv:
             pos = agent.pos + 2
             observe = map_fill[pos[0]-2:pos[0]+3, pos[1]-2:pos[1]+3].flatten().tolist()
             observe.pop(12) # 删除自身位置
-            observe.append(agent.local_goal[0] / 20)
-            observe.append(agent.local_goal[1] / 20)
+            observe.append(agent.local_goal[0] / self.size)
+            observe.append(agent.local_goal[1] / self.size)
             observe = np.asarray(observe, dtype = float)
             observations.append(observe)
         
@@ -133,7 +135,7 @@ class NavigationEnv:
             self.agents[i].steps += 1
 
             # 如果机器人的位置没有超越地图边界，则更新机器人位置
-            if not (0 <= self.agents[i].pos[0] < 20 and 0 <= self.agents[i].pos[1] < 20):
+            if not (0 <= self.agents[i].pos[0] < self.size and 0 <= self.agents[i].pos[1] < self.size):
                 self.agents[i].done_collision = True
                 self.agents[i].pos = self.agents[i].last_pos.copy()    
 
@@ -145,9 +147,9 @@ class NavigationEnv:
                 self.agents[i].local_goal[1] == 0:
                 self.agents[i].done_arrive = True
 
-            # 判断是否超时
-            if self.agents[i].steps > 150:
-                self.agents[i].done_overtime = True
+            # # 判断是否超时
+            # if self.agents[i].steps > 120:
+            #     self.agents[i].done_overtime = True
 
             # 计算回报
             reward = self.agents[i].compute_reward()
@@ -179,7 +181,8 @@ class NavigationEnv:
         self.maze.destroy()
 
 if __name__ == '__main__':
-    env = NavigationEnv(agent_num=1)
+    env = NavigationEnv(size = 10, block_num = 6, agent_num=1, block_size=2)
+    
     
     env.render(done=False)
     while True:

@@ -74,17 +74,20 @@ class Agent:
         '''
         if self.done_arrive:        # 成功到达
             reward = 100
+            print('arrive!')
         elif self.done_collision:   # 发生碰撞
             reward = -50
+            print('collision!')
         elif self.done_overtime:    # 运行超时
-            reward = 0
+            reward = -100
+            print('overtime!')
         else:                       # 未结束
             # 与目标点的距离缩短
             distance1 = np.sqrt((self.pos[0] - self.global_goal[0])**2 + (self.pos[1] - self.global_goal[1])**2)
             distance2 = np.sqrt((self.last_pos[0] - self.global_goal[0])**2 + (self.last_pos[1] - self.global_goal[1])**2) 
-            # print(f'distance1: {distance1}, distance2: {distance2}')
-            reward1 = 1 * int(distance1 < distance2)
-            reward2 = -1 # 每走一步都消耗能量
+            # print('distance1: {:.3}, distance2: {:.3}'.format(distance1, distance2))
+            reward1 = 0.5 * (distance2 - 0.5 * distance1)
+            reward2 = -5 # 每走一步都消耗能量
             reward = reward1 + reward2
         return reward
 
