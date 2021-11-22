@@ -89,13 +89,14 @@ class NavigationEnv:
         map_fill = np.ones((self.size + 4, self.size + 4))
         map_fill[2:-2, 2:-2] = self.map
 
-        for agent in self.agents:
+        for i in range(self.agent_num):
             observe = np.zeros((5, 5))
-            pos = agent.pos + 2
+            pos = self.agents[i].pos + 2
             observe = map_fill[pos[0]-2:pos[0]+3, pos[1]-2:pos[1]+3].flatten().tolist()
             observe.pop(12) # 删除自身位置
-            observe.append(agent.local_goal[0] / self.size)
-            observe.append(agent.local_goal[1] / self.size)
+            
+            observe.append(self.agents[i].local_goal[0] / self.size)
+            observe.append(self.agents[i].local_goal[1] / self.size)
             observe = np.asarray(observe, dtype = float)
             observations.append(observe)
         
@@ -123,7 +124,6 @@ class NavigationEnv:
             print('step传入参数错误！')
             return
 
-        observations = self.Agents_Observe()
         rewards = []
         done_arrives = []
         done_collisions = []
@@ -158,6 +158,8 @@ class NavigationEnv:
             done_collisions.append(self.agents[i].done_collision)
             done_overtimes.append(self.agents[i].done_overtime)
             rewards.append(reward)
+
+        observations = self.Agents_Observe()
         dones = np.asarray(done_arrives, dtype = bool) + np.asarray(done_collisions, dtype = bool) \
             + np.asarray(done_overtimes, dtype = bool)
         return observations, rewards, dones

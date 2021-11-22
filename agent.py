@@ -73,22 +73,27 @@ class Agent:
         计算当前机器人的奖励
         '''
         if self.done_arrive:        # 成功到达
-            reward = 100
+            reward = 20
             print('arrive!')
         elif self.done_collision:   # 发生碰撞
-            reward = -50
+            reward = -10
             print('collision!')
         elif self.done_overtime:    # 运行超时
             reward = -100
             print('overtime!')
         else:                       # 未结束
+            reward1 = reward2 = reward3 = 0
             # 与目标点的距离缩短
             distance1 = np.sqrt((self.pos[0] - self.global_goal[0])**2 + (self.pos[1] - self.global_goal[1])**2)
             distance2 = np.sqrt((self.last_pos[0] - self.global_goal[0])**2 + (self.last_pos[1] - self.global_goal[1])**2) 
             # print('distance1: {:.3}, distance2: {:.3}'.format(distance1, distance2))
-            reward1 = 0.5 * (distance2 - 0.5 * distance1)
-            reward2 = -5 # 每走一步都消耗能量
-            reward = reward1 + reward2
+            reward1 = -0.5 * distance1 #0.1 * (distance2 - distance1)
+            reward2 = -1 # 每走一步都消耗能量
+            if self.steps >= 200:
+                reward3 = -1
+            else:
+                reward3 = 0
+            reward = reward1 + reward2 + reward3
         return reward
 
 if __name__ == '__main__':

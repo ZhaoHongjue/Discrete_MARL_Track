@@ -1,4 +1,5 @@
 import os
+from typing import overload
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -111,16 +112,16 @@ class DQN:
         '''
         保存模型
         '''
-        self.evaluate_net.save_weights('./models/evaluate_net')
-        self.target_net.save_weights('./models/target_net')
+        self.evaluate_net.save_weights('./models/DQN/evaluate_net')
+        self.target_net.save_weights('./models/DQN/target_net')
         self.replayer.save()
 
     def load(self):
         '''
         加载模型
         '''
-        self.evaluate_net.load_weights('./models/evaluate_net')
-        self.target_net.load_weights('./models/target_net')
+        self.evaluate_net.load_weights('./models/DQN/evaluate_net')
+        self.target_net.load_weights('./models/DQN/target_net')
         self.replayer.load()
 
 class DoubleDQN(DQN):
@@ -143,6 +144,22 @@ class DoubleDQN(DQN):
 
         if done:
             self.target_net.set_weights(self.evaluate_net.get_weights())
+
+    def save(self):
+        '''
+        保存模型
+        '''
+        self.evaluate_net.save_weights('./models/DoubleDQN/evaluate_net')
+        self.target_net.save_weights('./models/DoubleDQN/target_net')
+        self.replayer.save('./models/DoubleDQN/replayer.csv')
+
+    def load(self):
+        '''
+        加载模型
+        '''
+        self.evaluate_net.load_weights('./models/DoubleDQN/evaluate_net')
+        self.target_net.load_weights('./models/DoubleDQN/target_net')
+        self.replayer.load('./models/DoubleDQN/replayer.csv')
 
 class QActorCritic:
     '''
@@ -209,8 +226,25 @@ class QActorCritic:
             self.discount = 1.
         else:
             self.discount *= self.gamma
+    
+    def save(self):
+        '''
+        保存网络参数
+        '''
+        self.actor_net.save_weights('./models/AC/actor_net')
+        self.critic_net.save_weights('./models/AC/critic_net')
+
+    def load(self):
+        '''
+        加载网络模型参数
+        '''
+        self.actor_net.load_weights('./models/AC/actor_net')
+        self.critic_net.load_weights('./models/AC/critic_net')
 
 class AdvantageActorCritic(QActorCritic):
+    '''
+    优势执行者/评论者算法
+    '''
     def __init__(self, env, actor_kwargs, critic_kwargs, gamma=0.99):
         self.action_n = env.action_dim
         self.gamma = gamma
@@ -248,8 +282,25 @@ class AdvantageActorCritic(QActorCritic):
             self.discount = 1. # 为下一回合初始化累积折扣
         else:
             self.discount *= self.gamma # 进一步累积折扣
+    
+    def save(self):
+        '''
+        保存网络参数
+        '''
+        self.actor_net.save_weights('./models/AdvantageAC/actor_net')
+        self.critic_net.save_weights('./models/AdvantageAC/critic_net')
+
+    def load(self):
+        '''
+        加载网络模型参数
+        '''
+        self.actor_net.load_weights('./models/AdvantageAC/actor_net')
+        self.critic_net.load_weights('./models/AdvantageAC/critic_net')
 
 class ElibilityTraceActorCritic(QActorCritic):
+    '''
+    带资格迹的执行者/评论者方法
+    '''
     def __init__(self, env, actor_kwargs, critic_kwargs, gamma=0.99,
             actor_lambda=0.9, critic_lambda=0.9):
         observation_dim = env.observation_dim
@@ -317,7 +368,24 @@ class ElibilityTraceActorCritic(QActorCritic):
         else:
             self.discount *= self.gamma
 
-class SACAgent(QActorCritic):
+    def save(self):
+        '''
+        保存网络参数
+        '''
+        self.actor_net.save_weights('./models/ElibilityTraceAC/actor_net')
+        self.critic_net.save_weights('./models/ElibilityTraceAC/critic_net')
+
+    def load(self):
+        '''
+        加载网络模型参数
+        '''
+        self.actor_net.load_weights('./models/ElibilityTraceAC/actor_net')
+        self.critic_net.load_weights('./models/ElibilityTraceAC/critic_net')
+    
+class SAC(QActorCritic):
+    '''
+    柔性执行者/评论者算法
+    '''
     def __init__(self, env, actor_kwargs, critic_kwargs,
             gamma=0.99, alpha=0.2, net_learning_rate=0.1,
             replayer_capacity=1000, batches=1, batch_size=64):
@@ -392,6 +460,26 @@ class SACAgent(QActorCritic):
                 # 更新目标网络
                 self.update_target_net(self.v_target_net,
                         self.v_evaluate_net, self.net_learning_rate)
+
+    def save(self):
+        '''
+        保存网络参数
+        '''
+        self.actor_net.save_weights('./models/SAC/actor_net')
+        self.q0_net.save_weights('./models/SAC/q0_net')
+        self.q1_net.save_weights('./models/SAC/q1_net')
+        self.v_evaluate_net.save_weights('./models/SAC/v_evaluate_net')
+        self.v_target_net.save_weights('./models/SAC/v_target_net')
+
+    def load(self):
+        '''
+        加载网络模型参数
+        '''
+        self.actor_net.load_weights('./models/SAC/actor_net')
+        self.q0_net.load_weights('./models/SAC/q0_net')
+        self.q1_net.load_weights('./models/SAC/q1_net')
+        self.v_evaluate_net.load_weights('./models/SAC/v_evaluate_net')
+        self.v_target_net.load_weights('./models/SAC/v_target_net')
 
 def play_qlearning(env, policy, train=False, render=False):
     episode_reward = 0

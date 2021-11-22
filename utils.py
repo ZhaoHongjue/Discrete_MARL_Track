@@ -26,15 +26,15 @@ class ReplayerBuffer:
         indices = np.random.choice(self.count, size=size)
         return (np.stack(self.memory.loc[indices, field]) for field in
                 self.memory.columns)
-    def save(self):
+
+    def save(self, path):
         '''
         保存学习得到的经验
         '''
-        self.memory.to_csv('./models/replayer.csv')
+        self.memory.to_csv(path)
 
-    def load(self):
-        self.memory = pd.read_csv('./models/replayer.csv')
-        self.count = self.memory.shape[0]
+    def load(self, path):
+        self.memory = pd.read_csv(path, index_col=0)
     
 def plot(episode_rewards):
     '''
