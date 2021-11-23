@@ -1,14 +1,10 @@
 import os
-from typing import overload
+from tkinter.constants import E
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import gym
 
 import tensorflow as tf
-import torch
 import scipy
 from tensorflow import keras
 
@@ -159,7 +155,7 @@ class DoubleDQN(DQN):
         '''
         self.evaluate_net.load_weights('./models/DoubleDQN/evaluate_net')
         self.target_net.load_weights('./models/DoubleDQN/target_net')
-        self.replayer.load('./models/DoubleDQN/replayer.csv')
+        # self.replayer.load('./models/DoubleDQN/replayer.csv')
 
 class QActorCritic:
     '''
@@ -489,15 +485,20 @@ def play_qlearning(env, policy, train=False, render=False):
             env.render(False)
         actions = []
         for i in range(env.agent_num):
-            action = policy.decide(observations[i])
+            if env.agents[i].done_arrive or env.agents[i].done_collision or env.agents[i].done_overtime:
+                action = -1
+            else:
+                action = policy.decide(observations[i])
             actions.append(action)
         next_observations, rewards, dones = env.step(actions)
         episode_reward += np.sum(rewards)
         if train:
             for i in range(env.agent_num):
+                if env.agents[i].done_arrive or env.agents[i].done_collision or env.agents[i].done_overtime:
+                    continue
                 policy.learn(observations[i], actions[i], rewards[i], next_observations[i],
                     dones[i])
-        if True in dones:
+        if dones.all():
             break
         observations = next_observations
     return episode_reward
@@ -529,34 +530,3 @@ def play_sarsa(env, policy, train=False, render=False):
                     dones, next_actions)
         observations, actions = next_observations, next_actions
     return episode_reward
-
-if __name__ == '__main__':
-    env = gym.make('CartPole-v0')
-    env.observation_dim = env.observation_space.shape[0]
-    env.action_dim = env.action_space.n
-    net_kwargs = {'hidden_sizes' : [64, 64], 'lr' : 0.001}
-    agent = DQN(env, net_kwargs=net_kwargs)
-
-    # 训练
-    episodes = 1
-    episode_rewards = []
-    for episode in range(episodes):
-        episode_reward = play_qlearning(env, agent, train=True)
-        episode_rewards.append(episode_reward)
-        print(f'episode: {episode}, episode_reward:{episode_reward}')
-        plot(episode_rewards)
-
-    # 测试
-    agent.save()
-    agent.epsilon = 0. # 取消探索
-    episode_rewards = [play_qlearning(env, agent) for _ in range(1)]
-    print('平均回合奖励1 = {} / {} = {}'.format(sum(episode_rewards),
-            len(episode_rewards), np.mean(episode_rewards)))
-
-    test = DQN(env, net_kwargs=net_kwargs)
-    test.epsilon = 0.
-    test.load()
-    episode_rewards = [play_qlearning(env, test) for _ in range(1)]
-    print('平均回合奖励2 = {} / {} = {}'.format(sum(episode_rewards),
-            len(episode_rewards), np.mean(episode_rewards)))
-    print(test.target_net.get_weights()[1] == agent.target_net.get_weights()[1])

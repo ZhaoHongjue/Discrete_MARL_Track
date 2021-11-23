@@ -35,17 +35,24 @@ class ReplayerBuffer:
 
     def load(self, path):
         self.memory = pd.read_csv(path, index_col=0)
+
+class Chart:
+    '''
+    用于画图的类
+    '''
+    def __init__(self):
+        self.figure, self.ax = plt.subplots(1, 1)
     
-def plot(episode_rewards):
-    '''
-    奖励曲线绘制函数
-    '''
-    figure, ax = plt.subplots()
-    ax.plot(episode_rewards)
-    ax.set_xlabel('episode')
-    ax.set_ylabel('reward')
-    ax.set_title('episode rewards')
-    figure.savefig('./curves/curve.png')
+    def plot(self, episode_rewards):
+        '''
+        奖励曲线绘制函数
+        '''
+        self.ax.clear()
+        self.ax.plot(episode_rewards)
+        self.ax.set_xlabel('episode')
+        self.ax.set_ylabel('reward')
+        self.ax.set_title('episode rewards')
+        self.figure.savefig('./curves/curve.png')
 
 
 

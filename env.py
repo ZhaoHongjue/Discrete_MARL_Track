@@ -1,10 +1,11 @@
 import numpy as np
+from numpy.core.numeric import count_nonzero
 from agent import Agent
 from UI import Maze
 np.random.seed(0)
 
 class NavigationEnv:
-    def __init__(self, size = 20, agent_num = 1, block_num = 10, block_size = 3):
+    def __init__(self, size = 20, agent_num = 1, block_num = 10, block_size = 3, is_training = False):
         '''
         生成地图以及初始参数设置
 
@@ -16,10 +17,19 @@ class NavigationEnv:
         self.size = size
         self.map = np.zeros((size, size))
         self.agents = []
-
+        
+        # 导航任务参数
         self.agent_num = agent_num
         self.block_num = block_num
         self.block_size = block_size
+        self.is_training = is_training
+        self.social_collision = False
+        
+        # 测试参数
+        self.arrive = 0
+        self.collision = 0
+        self.overtime = 0
+        self.social = 0
 
         self.AddBlocks(self.block_num)
         self.AddAgents(self.agent_num)
@@ -69,16 +79,9 @@ class NavigationEnv:
         # 使地图回到没有放置机器人的状态
         self.map[self.map == 2] = 0
         self.map[self.map == 3] = 0
+
         for i in range(len(self.agents)):
-            # 如果机器人当前位置没有障碍物
-            if self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 0 or \
-                self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 3:
-                self.map[self.agents[i].pos[0], self.agents[i].pos[1]] = 2
-            # 否则则认为发生碰撞
-            else:
-                self.agents[i].done_collision = True
-                self.agents[i].pos = self.agents[i].last_pos.copy()
-                self.map[self.agents[i].pos[0], self.agents[i].pos[1]] = 2
+            self.map[self.agents[i].pos[0], self.agents[i].pos[1]] = 2
             self.map[self.agents[i].global_goal[0], self.agents[i].global_goal[1]] = 3
 
     def Agents_Observe(self):
@@ -90,18 +93,67 @@ class NavigationEnv:
         map_fill[2:-2, 2:-2] = self.map
 
         for i in range(self.agent_num):
-            observe = np.zeros((5, 5))
-            pos = self.agents[i].pos + 2
-            observe = map_fill[pos[0]-2:pos[0]+3, pos[1]-2:pos[1]+3].flatten().tolist()
-            observe.pop(12) # 删除自身位置
-            
-            observe.append(self.agents[i].local_goal[0] / self.size)
-            observe.append(self.agents[i].local_goal[1] / self.size)
-            observe = np.asarray(observe, dtype = float)
+            if self.agents[i].done_arrive or self.agents[i].done_collision or self.agents[i].done_overtime:
+                observe = np.ones(self.observation_dim) * -1
+            else:
+                observe = np.zeros((5, 5))
+                pos = self.agents[i].pos + 2
+                observe = map_fill[pos[0]-2:pos[0]+3, pos[1]-2:pos[1]+3].flatten().tolist()
+                observe.pop(12) # 删除自身位置
+                
+                observe.append(self.agents[i].local_goal[0] / self.size)
+                observe.append(self.agents[i].local_goal[1] / self.size)
+                observe = np.asarray(observe, dtype = float)
             observations.append(observe)
         
         return observations
-        
+    
+    def Check_Arrive(self):
+        '''
+        检测机器人是否到目标点
+        '''
+        for i in range(self.agent_num):
+            if self.agents[i].local_goal[0] == 0 and \
+                self.agents[i].local_goal[1] == 0:
+                self.agents[i].done_arrive = True
+                print(f'{i} arrive!')
+                if not self.is_training:
+                    self.arrive += 1
+
+    def Check_Collision(self):
+        '''
+        机器人的碰撞检测
+        '''
+        for i in range(self.agent_num):
+            # 若已经发生碰撞则跳过
+            if self.agents[i].done_collision:
+                continue
+
+            # 检测机器人是否有没有越过边界
+            if not (0 <= self.agents[i].pos[0] < self.size and 0 <= self.agents[i].pos[1] < self.size):
+                self.agents[i].done_collision = True
+
+            # 如果机器人当前位置有静态障碍物
+            elif self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 1: 
+                self.agents[i].done_collision = True
+            
+            # 如果机器人当前位置有其他机器人
+            elif self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 4:
+                self.social_collision = True
+                for j in range(self.agent_num):
+                    if self.agents[i].pos[0] == self.agents[j].pos[0] or \
+                        self.agents[i].pos[1] == self.agents[j].pos[1]:
+                        self.agents[i].done_collision = True
+
+            # 若发生碰撞：
+            if self.agents[i].done_collision:
+                # 机器人的位置和之前相同
+                self.agents[i].pos = self.agents[i].last_pos.copy()
+                print(f'{i} collision!')
+                # 若未在训练
+                if not self.is_training:
+                    self.collision += 1
+                    
     def reset(self):
         '''
         环境重置
@@ -129,37 +181,31 @@ class NavigationEnv:
         done_collisions = []
         done_overtimes = []
 
-        for i in range(len(self.agents)):
-            # 执行对应动作
-            self.agents[i].set_action(actions[i])
-            self.agents[i].steps += 1
+        for i in range(self.agent_num):
+            # 如果该机器人已经结束则直接令reward为0
+            if self.agents[i].done_arrive or self.agents[i].done_collision or self.agents[i].done_overtime:
+                reward = 0
+            else:
+                # 执行对应动作
+                self.agents[i].set_action(actions[i])
+                self.agents[i].steps += 1
 
-            # 如果机器人的位置没有超越地图边界，则更新机器人位置
-            if not (0 <= self.agents[i].pos[0] < self.size and 0 <= self.agents[i].pos[1] < self.size):
-                self.agents[i].done_collision = True
-                self.agents[i].pos = self.agents[i].last_pos.copy()    
-
-            self.Agents_Place_Refresh()
-
-            # 判断机器人是否到目标位置
-            # print(f'local_goal: {self.agents[i].local_goal}')
-            if self.agents[i].local_goal[0] == 0 and \
-                self.agents[i].local_goal[1] == 0:
-                self.agents[i].done_arrive = True
-
-            # # 判断是否超时
-            # if self.agents[i].steps > 120:
-            #     self.agents[i].done_overtime = True
-
-            # 计算回报
-            reward = self.agents[i].compute_reward()
-
-            done_arrives.append(self.agents[i].done_arrive)
-            done_collisions.append(self.agents[i].done_collision)
-            done_overtimes.append(self.agents[i].done_overtime)
-            rewards.append(reward)
+                # 判断是否超时
+                if not self.is_training:
+                    if self.agents[i].steps > 120:
+                        self.agents[i].done_overtime = True
+                        self.overtime += 1
+                
+        self.Check_Arrive()
+        self.Check_Collision()
+        self.Agents_Place_Refresh()
 
         observations = self.Agents_Observe()
+        rewards = [agent.compute_reward() for agent in self.agents]
+        done_arrives = [agent.done_arrive for agent in self.agents]
+        done_collisions = [agent.done_collision for agent in self.agents]
+        done_overtimes = [agent.done_overtime for agent in self.agents]
+        
         dones = np.asarray(done_arrives, dtype = bool) + np.asarray(done_collisions, dtype = bool) \
             + np.asarray(done_overtimes, dtype = bool)
         return observations, rewards, dones
@@ -183,12 +229,12 @@ class NavigationEnv:
         self.maze.destroy()
 
 if __name__ == '__main__':
-    env = NavigationEnv(size = 10, block_num = 6, agent_num=1, block_size=2)
+    env = NavigationEnv(size = 5, block_num = 6, agent_num=2, block_size=2)
     
     
     env.render(done=False)
     while True:
-        observations, rewards, dones = env.step([7])
+        observations, rewards, dones = env.step([7, 1])
         print(f'observations: {observations}')
         print(f'rewards: {rewards}')
         done = True in dones

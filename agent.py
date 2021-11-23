@@ -74,13 +74,13 @@ class Agent:
         '''
         if self.done_arrive:        # 成功到达
             reward = 20
-            print('arrive!')
+            # print('arrive!')
         elif self.done_collision:   # 发生碰撞
             reward = -10
-            print('collision!')
+            # print('collision!')
         elif self.done_overtime:    # 运行超时
-            reward = -100
-            print('overtime!')
+            reward = 0
+            # print('overtime!')
         else:                       # 未结束
             reward1 = reward2 = reward3 = 0
             # 与目标点的距离缩短
