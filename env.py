@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.core.numeric import count_nonzero
 from agent import Agent
-from UI import Maze
+# from UI import Maze
 np.random.seed(0)
 
 class NavigationEnv:
@@ -92,9 +92,11 @@ class NavigationEnv:
         map_fill = np.ones((self.size + 4, self.size + 4))
         map_fill[2:-2, 2:-2] = self.map
 
-        for i in range(self.agent_num):
-            if self.agents[i].done_arrive or self.agents[i].done_collision or self.agents[i].done_overtime:
+        for i in range(len(self.agents)):
+            # 如果机器人已经结束工作，则直接令观测为-1
+            if self.agents[i].over:
                 observe = np.ones(self.observation_dim) * -1
+            # 如果机器人没有结束
             else:
                 observe = np.zeros((5, 5))
                 pos = self.agents[i].pos + 2
@@ -112,7 +114,10 @@ class NavigationEnv:
         '''
         检测机器人是否到目标点
         '''
-        for i in range(self.agent_num):
+        for i in range(len(self.agents)):
+            # 如果已经结束运行则跳过
+            if self.agents[i].over:
+                continue
             if self.agents[i].local_goal[0] == 0 and \
                 self.agents[i].local_goal[1] == 0:
                 self.agents[i].done_arrive = True
@@ -124,9 +129,9 @@ class NavigationEnv:
         '''
         机器人的碰撞检测
         '''
-        for i in range(self.agent_num):
-            # 若已经发生碰撞则跳过
-            if self.agents[i].done_collision:
+        for i in range(len(self.agents)):
+            # 若已经结束运行则跳过
+            if self.agents[i].over:
                 continue
 
             # 检测机器人是否有没有越过边界
@@ -140,10 +145,12 @@ class NavigationEnv:
             # 如果机器人当前位置有其他机器人
             elif self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 4:
                 self.social_collision = True
+                print('social collision!')
                 for j in range(self.agent_num):
                     if self.agents[i].pos[0] == self.agents[j].pos[0] or \
                         self.agents[i].pos[1] == self.agents[j].pos[1]:
                         self.agents[i].done_collision = True
+                        self.agents[i].done_social = True
 
             # 若发生碰撞：
             if self.agents[i].done_collision:
@@ -153,6 +160,27 @@ class NavigationEnv:
                 # 若未在训练
                 if not self.is_training:
                     self.collision += 1
+    
+    def Check_over(self):
+        '''
+        检测机器人是否结束运行
+        '''
+        for i in range(len(self.agents)):
+            if self.agents[i].done_collision or self.agents[i].done_arrive or self.agents[i].done_overtime:
+                self.agents[i].over = True
+
+    def Compute_Rewards(self):
+        '''
+        计算整体奖励
+        '''
+        rewards = []
+        for agent in self.agents:
+            if agent.over:
+                reward = 0
+            else:
+                reward = agent.compute_reward()
+            rewards.append(reward)
+        return rewards
                     
     def reset(self):
         '''
@@ -172,6 +200,8 @@ class NavigationEnv:
         '''
         env中的必备函数
         '''
+        self.Check_over()
+        
         if len(actions) != self.agent_num:
             print('step传入参数错误！')
             return
@@ -181,10 +211,10 @@ class NavigationEnv:
         done_collisions = []
         done_overtimes = []
 
-        for i in range(self.agent_num):
+        for i in range(len(self.agents)):
             # 如果该机器人已经结束则直接令reward为0
-            if self.agents[i].done_arrive or self.agents[i].done_collision or self.agents[i].done_overtime:
-                reward = 0
+            if self.agents[i].over:
+                pass
             else:
                 # 执行对应动作
                 self.agents[i].set_action(actions[i])
@@ -195,38 +225,44 @@ class NavigationEnv:
                     if self.agents[i].steps > 120:
                         self.agents[i].done_overtime = True
                         self.overtime += 1
+        
                 
         self.Check_Arrive()
         self.Check_Collision()
-        self.Agents_Place_Refresh()
 
         observations = self.Agents_Observe()
-        rewards = [agent.compute_reward() for agent in self.agents]
+        rewards = self.Compute_Rewards()
+
         done_arrives = [agent.done_arrive for agent in self.agents]
         done_collisions = [agent.done_collision for agent in self.agents]
         done_overtimes = [agent.done_overtime for agent in self.agents]
         
         dones = np.asarray(done_arrives, dtype = bool) + np.asarray(done_collisions, dtype = bool) \
             + np.asarray(done_overtimes, dtype = bool)
+
+        self.Agents_Place_Refresh()
+        
         return observations, rewards, dones
 
     def render(self, done):
-        '''
-        绘制图形化界面
+        # '''
+        # 绘制图形化界面
 
-        done：True时会持续运行，False时会每个0.5秒重画一次
-        '''
-        # print(self.map)
-        self.maze = Maze(self.map)
-        if not done:
-            self.maze.after(500, self.close)
-        self.maze.mainloop()
+        # done：True时会持续运行，False时会每个0.5秒重画一次
+        # '''
+        # # print(self.map)
+        # self.maze = Maze(self.map)
+        # if not done:
+        #     self.maze.after(500, self.close)
+        # self.maze.mainloop()
+        pass
            
     def close(self):
         '''
         关闭图形化界面
         '''
-        self.maze.destroy()
+        # self.maze.destroy()
+        pass
 
 if __name__ == '__main__':
     env = NavigationEnv(size = 5, block_num = 6, agent_num=2, block_size=2)

@@ -31,7 +31,7 @@ class DQN:
     DQN算法
     '''
     def __init__(self, env, net_kwargs={}, gamma=0.99, epsilon=0.002,
-                 replayer_capacity=10000, batch_size=32):
+                 replayer_capacity=30000, batch_size=32):
         '''
         初始化
         net_kwargs:网络参数\\
@@ -110,7 +110,7 @@ class DQN:
         '''
         self.evaluate_net.save_weights('./models/DQN/evaluate_net')
         self.target_net.save_weights('./models/DQN/target_net')
-        self.replayer.save()
+        self.replayer.save('./models/DoubleDQN/replayer')
 
     def load(self):
         '''
@@ -118,7 +118,7 @@ class DQN:
         '''
         self.evaluate_net.load_weights('./models/DQN/evaluate_net')
         self.target_net.load_weights('./models/DQN/target_net')
-        self.replayer.load()
+        self.replayer.load('./models/DQN/replayer')
 
 class DoubleDQN(DQN):
     '''
@@ -147,7 +147,7 @@ class DoubleDQN(DQN):
         '''
         self.evaluate_net.save_weights('./models/DoubleDQN/evaluate_net')
         self.target_net.save_weights('./models/DoubleDQN/target_net')
-        self.replayer.save('./models/DoubleDQN/replayer.csv')
+        self.replayer.save('./models/DoubleDQN/replayer')
 
     def load(self):
         '''
@@ -155,7 +155,7 @@ class DoubleDQN(DQN):
         '''
         self.evaluate_net.load_weights('./models/DoubleDQN/evaluate_net')
         self.target_net.load_weights('./models/DoubleDQN/target_net')
-        # self.replayer.load('./models/DoubleDQN/replayer.csv')
+        self.replayer.load('./models/DoubleDQN/replayer')
 
 class QActorCritic:
     '''
@@ -478,23 +478,17 @@ class SAC(QActorCritic):
         self.v_target_net.load_weights('./models/SAC/v_target_net')
 
 def play_qlearning(env, policy, train=False, render=False):
-    episode_reward = 0
+    episode_reward = np.zeros(3)
     observations = env.reset()
     while True:
         if render:
             env.render(False)
-        actions = []
-        for i in range(env.agent_num):
-            if env.agents[i].done_arrive or env.agents[i].done_collision or env.agents[i].done_overtime:
-                action = -1
-            else:
-                action = policy.decide(observations[i])
-            actions.append(action)
+        actions = [policy.decide(observation) for observation in observations]
         next_observations, rewards, dones = env.step(actions)
-        episode_reward += np.sum(rewards)
+        episode_reward += rewards
         if train:
             for i in range(env.agent_num):
-                if env.agents[i].done_arrive or env.agents[i].done_collision or env.agents[i].done_overtime:
+                if env.agents[i].over:
                     continue
                 policy.learn(observations[i], actions[i], rewards[i], next_observations[i],
                     dones[i])
