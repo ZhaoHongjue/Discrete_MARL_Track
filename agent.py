@@ -23,6 +23,7 @@ class Agent:
         self.done_arrive = False
         self.done_collision = False
         self.done_overtime = False
+        self.done_social = False
         self.steps = 0
         self.isenemy = isenemy
     
@@ -66,6 +67,7 @@ class Agent:
         self.done_arrive = False
         self.done_collision = False
         self.done_overtime = False
+        self.done_social = False
         self.steps = 0
 
     def compute_reward(self):
@@ -82,7 +84,7 @@ class Agent:
             reward = 0
             # print('overtime!')
         else:                       # 未结束
-            reward1 = reward2 = reward3 = 0
+            reward1 = reward2 = reward3 = reward4 = 0
             # 与目标点的距离缩短
             distance1 = np.sqrt((self.pos[0] - self.global_goal[0])**2 + (self.pos[1] - self.global_goal[1])**2)
             distance2 = np.sqrt((self.last_pos[0] - self.global_goal[0])**2 + (self.last_pos[1] - self.global_goal[1])**2) 
@@ -91,9 +93,9 @@ class Agent:
             reward2 = -1 # 每走一步都消耗能量
             if self.steps >= 200:
                 reward3 = -1
-            else:
-                reward3 = 0
-            reward = reward1 + reward2 + reward3
+            if self.done_social:
+                reward = -2
+            reward = reward1 + reward2 + reward3 + reward4
         return reward
 
 if __name__ == '__main__':

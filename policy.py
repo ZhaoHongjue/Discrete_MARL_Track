@@ -110,7 +110,7 @@ class DQN:
         '''
         self.evaluate_net.save_weights('./models/DQN/evaluate_net')
         self.target_net.save_weights('./models/DQN/target_net')
-        self.replayer.save()
+        self.replayer.save('./models/DoubleDQN/replayer')
 
     def load(self):
         '''
@@ -118,7 +118,7 @@ class DQN:
         '''
         self.evaluate_net.load_weights('./models/DQN/evaluate_net')
         self.target_net.load_weights('./models/DQN/target_net')
-        self.replayer.load()
+        self.replayer.load('./models/DQN/replayer')
 
 class DoubleDQN(DQN):
     '''
@@ -147,7 +147,7 @@ class DoubleDQN(DQN):
         '''
         self.evaluate_net.save_weights('./models/DoubleDQN/evaluate_net')
         self.target_net.save_weights('./models/DoubleDQN/target_net')
-        self.replayer.save('./models/DoubleDQN/replayer.csv')
+        self.replayer.save('./models/DoubleDQN/replayer')
 
     def load(self):
         '''
@@ -155,7 +155,7 @@ class DoubleDQN(DQN):
         '''
         self.evaluate_net.load_weights('./models/DoubleDQN/evaluate_net')
         self.target_net.load_weights('./models/DoubleDQN/target_net')
-        # self.replayer.load('./models/DoubleDQN/replayer.csv')
+        self.replayer.load('./models/DoubleDQN/replayer')
 
 class QActorCritic:
     '''
@@ -486,7 +486,7 @@ def play_qlearning(env, policy, train=False, render=False):
         actions = []
         for i in range(env.agent_num):
             if env.agents[i].done_arrive or env.agents[i].done_collision or env.agents[i].done_overtime:
-                action = -1
+                action = -5
             else:
                 action = policy.decide(observations[i])
             actions.append(action)

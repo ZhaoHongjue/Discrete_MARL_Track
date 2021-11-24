@@ -31,10 +31,15 @@ class ReplayerBuffer:
         '''
         保存学习得到的经验
         '''
-        self.memory.to_csv(path)
+        self.memory.to_csv(path + '/replayer.csv')
+        params = np.array([self.i, self.count, self.capacity])
+        np.save(path + '/params.npy', params)
 
     def load(self, path):
-        self.memory = pd.read_csv(path, index_col=0)
+        self.memory = pd.read_csv(path + '/replayer.csv', index_col=0)
+        params = np.load(path + '/params.npy')
+        self.i, self.count, self.capacity = \
+            params[0], params[1], params[2]
 
 class Chart:
     '''
