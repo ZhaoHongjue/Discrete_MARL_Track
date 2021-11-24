@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.core.numeric import count_nonzero
 from agent import Agent
-# from UI import Maze
+from UI import Maze
 np.random.seed(0)
 
 class NavigationEnv:
@@ -245,24 +245,24 @@ class NavigationEnv:
         return observations, rewards, dones
 
     def render(self, done):
-        # '''
-        # 绘制图形化界面
+        '''
+        绘制图形化界面
 
-        # done：True时会持续运行，False时会每个0.5秒重画一次
-        # '''
-        # # print(self.map)
-        # self.maze = Maze(self.map)
-        # if not done:
-        #     self.maze.after(500, self.close)
-        # self.maze.mainloop()
-        pass
+        done：True时会持续运行，False时会每个0.5秒重画一次
+        '''
+        # print(self.map)
+        self.maze = Maze(self.map)
+        if not done:
+            self.maze.after(500, self.close)
+        self.maze.mainloop()
+        # pass
            
     def close(self):
         '''
         关闭图形化界面
         '''
-        # self.maze.destroy()
-        pass
+        self.maze.destroy()
+        # pass
 
 if __name__ == '__main__':
     env = NavigationEnv(size = 5, block_num = 6, agent_num=2, block_size=2)
