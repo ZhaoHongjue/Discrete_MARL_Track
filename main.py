@@ -14,7 +14,7 @@ chart = Chart()
 # policy = SAC(env, actor_kwargs=actor_kwargs,
 #         critic_kwargs=critic_kwargs, batches=50)
 
-episodes = 15
+episodes = 10000
 episode_rewards = []
 draw = []
 for episode in range(episodes):
@@ -31,7 +31,7 @@ policy.save()
 
 policy.epsilon = 0.
 env.is_training = False
-episode_rewards = [play_qlearning(env, policy, render = True) for _ in range(1)]
+episode_rewards = [play_qlearning(env, policy, render = True) for _ in range(100)]
 np.save('./models/DoubleDQN/test.npy', episode_rewards)
 print(env.arrive, env.collision, env.overtime)
 print('平均回合奖励 = {} / {} = {}'.format(sum(episode_rewards),

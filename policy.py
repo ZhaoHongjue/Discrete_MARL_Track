@@ -478,7 +478,7 @@ class SAC(QActorCritic):
         self.v_target_net.load_weights('./models/SAC/v_target_net')
 
 def play_qlearning(env, policy, train=False, render=False):
-    episode_reward = np.zeros(3)
+    episode_reward = np.zeros(env.agent_num)
     observations = env.reset()
     while True:
         if render:

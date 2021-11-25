@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.core.numeric import count_nonzero
 from agent import Agent
-# from UI import Maze
+from UI import Maze
 np.random.seed(0)
 
 class NavigationEnv:
@@ -143,7 +143,7 @@ class NavigationEnv:
                 self.agents[i].done_collision = True
             
             # 如果机器人当前位置有其他机器人
-            elif self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 4:
+            elif self.map[self.agents[i].pos[0], self.agents[i].pos[1]] == 2:
                 self.social_collision = True
                 print('social collision!')
                 for j in range(self.agent_num):
@@ -156,6 +156,7 @@ class NavigationEnv:
             if self.agents[i].done_collision:
                 # 机器人的位置和之前相同
                 self.agents[i].pos = self.agents[i].last_pos.copy()
+                self.agents[i].local_goal = self.agents[i].global_goal - self.agents[i].pos
                 print(f'{i} collision!')
                 # 若未在训练
                 if not self.is_training:
@@ -245,23 +246,23 @@ class NavigationEnv:
         return observations, rewards, dones
 
     def render(self, done):
-        # '''
-        # 绘制图形化界面
+        '''
+        绘制图形化界面
 
-        # done：True时会持续运行，False时会每个0.5秒重画一次
-        # '''
-        # # print(self.map)
-        # self.maze = Maze(self.map)
-        # if not done:
-        #     self.maze.after(500, self.close)
-        # self.maze.mainloop()
+        done：True时会持续运行，False时会每个0.5秒重画一次
+        '''
+        # print(self.map)
+        self.maze = Maze(self.map)
+        if not done:
+            self.maze.after(500, self.close)
+        self.maze.mainloop()
         pass
            
     def close(self):
         '''
         关闭图形化界面
         '''
-        # self.maze.destroy()
+        self.maze.destroy()
         pass
 
 if __name__ == '__main__':
