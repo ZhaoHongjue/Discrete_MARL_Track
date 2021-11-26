@@ -147,7 +147,7 @@ class NavigationEnv:
                 self.social_collision = True
                 print('social collision!')
                 for j in range(self.agent_num):
-                    if self.agents[i].pos[0] == self.agents[j].pos[0] or \
+                    if self.agents[i].pos[0] == self.agents[j].pos[0] and \
                         self.agents[i].pos[1] == self.agents[j].pos[1]:
                         self.agents[i].done_collision = True
                         self.agents[i].done_social = True
