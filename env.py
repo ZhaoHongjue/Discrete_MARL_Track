@@ -1,7 +1,8 @@
+from matplotlib.pyplot import show
 import numpy as np
 from numpy.core.numeric import count_nonzero
 from agent import Agent
-from UI import Maze
+from UI import drawmap, show_video
 np.random.seed(0)
 
 class NavigationEnv:
@@ -38,6 +39,10 @@ class NavigationEnv:
         # 环境参数
         self.action_dim = 8 # 每个agent可以向周围八个方向运动
         self.observation_dim = 5 * 5 + 2 - 1 # 观测周围5 * 5的信息，并把局部坐标点输入
+        
+        # 图形产生
+        picture = drawmap(size, 30, self.map)
+        self.images = [picture.draw_map()]
 
     def AddBlocks(self, num):
         '''
@@ -193,6 +198,9 @@ class NavigationEnv:
         self.AddBlocks(self.block_num)
         self.AddAgents(self.agent_num)
         self.Agents_Place_Refresh()
+        
+        self.picture = drawmap(self.size, 30, self.map)
+        self.images = [self.picture.draw_map()]
 
         observations = self.Agents_Observe() 
         return observations
@@ -243,27 +251,31 @@ class NavigationEnv:
 
         self.Agents_Place_Refresh()
         
+        pic = drawmap(self.size, pixel=30, map = self.map)
+        self.images.append(pic.draw_map())
+        
         return observations, rewards, dones
 
-    def render(self, done):
+    def render(self, n):
         '''
         绘制图形化界面
 
         done：True时会持续运行，False时会每个0.5秒重画一次
         '''
-        # print(self.map)
-        self.maze = Maze(self.map)
-        if not done:
-            self.maze.after(500, self.close)
-        self.maze.mainloop()
+        show_video(self.images, n)
+        # # print(self.map)
+        # self.maze = Maze(self.map)
+        # if not done:
+        #     self.maze.after(500, self.close)
+        # self.maze.mainloop()
         pass
            
-    def close(self):
-        '''
-        关闭图形化界面
-        '''
-        self.maze.destroy()
-        pass
+    # def close(self):
+    #     '''
+    #     关闭图形化界面
+    #     '''
+    #     self.maze.destroy()
+    #     pass
 
 if __name__ == '__main__':
     env = NavigationEnv(size = 5, block_num = 6, agent_num=2, block_size=2)

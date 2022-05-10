@@ -116,8 +116,8 @@ class DQN:
         '''
         加载模型
         '''
-        self.evaluate_net.load_weights('./models/DQN/evaluate_net')
-        self.target_net.load_weights('./models/DQN/target_net')
+        self.evaluate_net.load_weights('./models/DQN/SingleAgent/evaluate_net')
+        self.target_net.load_weights('./models/DQN/SingleAgent/target_net')
         self.replayer.load('./models/DQN/replayer')
 
 class DoubleDQN(DQN):
@@ -145,17 +145,17 @@ class DoubleDQN(DQN):
         '''
         保存模型
         '''
-        self.evaluate_net.save_weights('./models/DoubleDQN/evaluate_net')
-        self.target_net.save_weights('./models/DoubleDQN/target_net')
-        self.replayer.save('./models/DoubleDQN/replayer')
+        self.evaluate_net.save_weights('./models/DoubleDQN/SingleAgent/evaluate_net')
+        self.target_net.save_weights('./models/DoubleDQN/SingleAgent/target_net')
+        self.replayer.save('./models/DoubleDQN/SingleAgent/replayer')
 
     def load(self):
         '''
         加载模型
         '''
-        self.evaluate_net.load_weights('./models/DoubleDQN/evaluate_net')
-        self.target_net.load_weights('./models/DoubleDQN/target_net')
-        self.replayer.load('./models/DoubleDQN/replayer')
+        self.evaluate_net.load_weights('./models/DoubleDQN/MultiAgents/evaluate_net')
+        self.target_net.load_weights('./models/DoubleDQN/MultiAgents/target_net')
+        self.replayer.load('./models/DoubleDQN/MultiAgents/replayer')
 
 class QActorCritic:
     '''
@@ -480,9 +480,10 @@ class SAC(QActorCritic):
 def play_qlearning(env, policy, train=False, render=False):
     episode_reward = np.zeros(env.agent_num)
     observations = env.reset()
+    i = 0
     while True:
         if render:
-            env.render(False)
+            env.render(i)
         actions = [policy.decide(observation) for observation in observations]
         next_observations, rewards, dones = env.step(actions)
         episode_reward += rewards
@@ -495,6 +496,7 @@ def play_qlearning(env, policy, train=False, render=False):
         if dones.all():
             break
         observations = next_observations
+        i += 1
     return episode_reward
 
 def play_sarsa(env, policy, train=False, render=False):

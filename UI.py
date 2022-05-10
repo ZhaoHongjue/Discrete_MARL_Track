@@ -1,79 +1,76 @@
+from importlib.resources import path
 import numpy as np
-import tkinter as tk
+from PIL import Image, ImageDraw
 
-UNIT = 40
+k = 20 
+pixel = 30
+champ = 3
 
-class Maze(tk.Tk, object):
-    '''
-    环境的图形化界面
-    '''
-    def __init__(self, map):
-        '''
-        相关的初始化
-        '''
-        super(Maze, self).__init__()
-        # 初始化地图规模
-        self.map = map
-        self.MAZE_W = self.map.shape[0]
-        self.MAZE_H = self.map.shape[1]
-
-        self.title('maze')
-        self.geometry('{0}x{1}'.format(self.MAZE_H * UNIT, self.MAZE_H * UNIT))
-        self._build_maze()
+class drawmap:
     
-    def _build_maze(self):
+    def __init__(self,size,pixel,map):
         '''
-        创建画布，绘制图形化界面
+        size+2为边长的白色格子图
         '''
-        self.canvas = tk.Canvas(self, bg='white',
-                           height=self.MAZE_H * UNIT,
-                           width=self.MAZE_W * UNIT)
+        self.map = map
+        self.size=size
+        self.pixel = pixel
+        self.image = Image.new('RGBA',[(size+2)*pixel,(size+2)*pixel],color =  "white")
+    
+    def draw_grid(self):
+        '''
+        划线,size+1条
+        '''
+        size = (self.size)
+        pixel = self.pixel
+        draw = ImageDraw.Draw(self.image)
+        for i in range (1,size+2):
+            draw.line([(i*pixel,(size+1)*pixel),(i*pixel,pixel)],fill = (0,0,0,255),width = 2)
+            draw.line([((size+1)*pixel,i*pixel),(pixel,i*pixel)],fill = (0,0,0,255),width = 2)
+        draw.line([((size+1)*pixel,pixel),(pixel,pixel)],fill = (0,0,0,255),width =5)
+        draw.line([(pixel,(size+1)*pixel),(pixel,pixel)],fill = (0,0,0,255),width =5)
+        draw.line([(pixel,(size+1)*pixel),((size+1)*pixel,(size+1)*pixel)],fill = (0,0,0,255),width =5)
+        draw.line([((size+1)*pixel,pixel),((size+1)*pixel,(size+1)*pixel)],fill = (0,0,0,255),width =5)
 
-        # 创建网格
-        for c in range(0, self.MAZE_W * UNIT, UNIT):
-            x0, y0, x1, y1 = c, 0, c, self.MAZE_H * UNIT
-            self.canvas.create_line(x0, y0, x1, y1)
-        for r in range(0, self.MAZE_H * UNIT, UNIT):
-            x0, y0, x1, y1 = 0, r, self.MAZE_W * UNIT, r
-            self.canvas.create_line(x0, y0, x1, y1)
+    def draw_case(self,i, j, idx):
+        '''
+        画机器人与猎物
+        '''
+        pixel = self.pixel
+        draw = ImageDraw.Draw(self.image)
+        if idx == 1:
+            draw.rectangle([((i+1)*pixel,(j+1)*pixel),((i+2)*pixel,(j+2)*pixel)],fill = 'black')
+        elif idx == 2:
+            draw.ellipse([((i+1)*pixel,(j+1)*pixel),((i+2)*pixel,(j+2)*pixel)],fill = 'red')
+        elif idx == 3:
+            draw.rectangle([((i+1)*pixel,(j+1)*pixel),((i+2)*pixel,(j+2)*pixel)],fill = 'grey')
+        elif idx == 4:
+            draw.ellipse([((i+1)*pixel,(j+1)*pixel),((i+2)*pixel,(j+2)*pixel)],fill = 'green')
+    
 
-        # 创建坐标
-        origin = np.array([20, 20])
-
+    def show(self):
+        self.image.show()
+    
+    def draw_map(self):
+        '''
+        作图并保存
+        '''
         for i in range(self.map.shape[0]):
             for j in range(self.map.shape[1]):
-                if self.map[i, j] == 1: # 障碍物采用黑色方块表示
-                    hell_center = origin + np.array([UNIT * i, UNIT * j])
-                    self.canvas.create_rectangle(
-                        hell_center[0] - 20, hell_center[1] - 20,
-                        hell_center[0] + 20, hell_center[1] + 20,
-                        fill='black')
-                elif self.map[i, j] == 2: # 我方机器人采用黄色点表示
-                    hunter_center = origin + np.array([UNIT * i, UNIT * j])
-                    self.canvas.create_oval(
-                        hunter_center[0] - 15, hunter_center[1] - 15,
-                        hunter_center[0] + 15, hunter_center[1] + 15,
-                        fill='yellow')
-                elif self.map[i, j] == 3: # 目标点采用绿色方块表示
-                    goal_center = origin + np.array([UNIT * i, UNIT * j])
-                    self.canvas.create_rectangle(
-                        goal_center[0] - 20, goal_center[1] - 20,
-                        goal_center[0] + 20, goal_center[1] + 20,
-                        fill='green')
-                elif self.map[i, j] == 4: # 敌方机器人采用红色点表示
-                    prey_center = origin + np.array([UNIT * i, UNIT * j])
-                    self.canvas.create_oval(
-                        prey_center[0] - 15, prey_center[1] - 15,
-                        prey_center[0] + 15, prey_center[1] + 15,
-                        fill='red')
-        # pack all
-        self.canvas.pack()
+                self.draw_case(i, j, self.map[i, j])
+        self.draw_grid()
+        return self.image
+
+def show_video(images, n) :
+    '''
+    做成gif
+    '''
+    title = "result" + str(n) +".gif"
+    images[0].save(title,save_all=True, append_images=images[1:],duration=100, loop=False, optimize=True, path = './gif')
     
-if __name__ == "__main__":
-    test = np.zeros((20, 20))
-    test[1, 0] = 1
-    test[4, 0] = 2
-    test[7, 0] = 3
-    test[10, 0] = 4
-    env = Maze(test)
-    env.mainloop()
+if __name__ == '__main__':
+    # Map = [np.zeros((20, 20))] * 20
+    # Test = drawmap(20, pixel=30, map = Map)
+    # show_video(Test)
+    image = Image.new('RGBA',[(20+2)*pixel,(20+2)*pixel],color =  "white")
+    image.save('fuck.png')
