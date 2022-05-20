@@ -1,7 +1,20 @@
 import numpy as np
 
+class Prey:
+    def __init__(self, initpos = [0, 0]) -> None:
+        self.pos = np.asarray(initpos, dtype = int)
+    
+    def set_action(self, action):
+        action = int(action)
+        if action not in list(range(8)):
+            print('set_action传参错误！')
+        else:
+            choices = np.array([[-1, -1], [0, -1], [1, -1], [-1, 0],
+                                [1, 0], [-1, 1], [0, 1], [1, 1]])
+            self.pos += choices[action]    
+
 class Agent:
-    def __init__(self, initpos = [0, 0], goal = [0, 0], isenemy = False):
+    def __init__(self, initpos = [0, 0], goal = [0, 0]):
         '''
         初始化机器人
 
@@ -26,7 +39,6 @@ class Agent:
         self.done_social = False
         self.steps = 0
         self.over = False
-        self.isenemy = isenemy
     
     def set_goal(self, goal):
         '''

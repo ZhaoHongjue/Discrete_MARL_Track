@@ -1,5 +1,5 @@
 import numpy as np
-from env import NavigationEnv
+from NavigationEnv import NavigationEnv
 from policy import *
 from utils import Chart
 
